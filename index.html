@@ -1,0 +1,516 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUMBLING - Peta Sulawesi Selatan</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef3f8;
+  color: #243447;
+}
+
+header {
+  background: #102b46;
+  color: white;
+  padding: 18px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  letter-spacing: 3px;
+  font-size: 27px;
+}
+
+header p {
+  margin: 7px 0 0;
+  color: #c7d8e8;
+  font-size: 13px;
+}
+
+.container {
+  max-width: 850px;
+  margin: 18px auto;
+  padding: 0 12px;
+}
+
+.panel {
+  background: white;
+  padding: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 15px #00000012;
+  margin-bottom: 15px;
+}
+
+h2 {
+  color: #174b7a;
+  font-size: 18px;
+  margin: 0 0 14px;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  font-size: 13px;
+  margin: 12px 0 7px;
+}
+
+input, select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #cbd5df;
+  border-radius: 8px;
+  background: white;
+  font-size: 15px;
+}
+
+input:focus, select:focus {
+  outline: 2px solid #80b9ed;
+}
+
+.transport {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.transport button {
+  background: #eaf2fa;
+  color: #174b7a;
+  border: 1px solid #d2e0ee;
+  padding: 12px 5px;
+  border-radius: 9px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0;
+}
+
+.transport button.active {
+  background: #1769aa;
+  color: white;
+}
+
+button.main {
+  width: 100%;
+  background: #1769aa;
+  color: white;
+  border: 0;
+  border-radius: 9px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: bold;
+  margin-top: 17px;
+  cursor: pointer;
+}
+
+button.main:disabled {
+  opacity: .6;
+}
+
+button.secondary {
+  width: 100%;
+  background: #e8eef5;
+  color: #174b7a;
+  border: 0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 9px;
+  cursor: pointer;
+}
+
+#map {
+  width: 100%;
+  height: 430px;
+  border-radius: 12px;
+  z-index: 1;
+}
+
+#hasil {
+  display: none;
+  background: #eaf5ff;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 15px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.stat {
+  background: white;
+  border-radius: 9px;
+  padding: 13px;
+  text-align: center;
+}
+
+.stat strong {
+  display: block;
+  font-size: 20px;
+  color: #1769aa;
+  margin-top: 5px;
+}
+
+.small {
+  color: #68798a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.status {
+  font-size: 13px;
+  margin-top: 12px;
+  color: #526579;
+}
+
+footer {
+  text-align: center;
+  padding: 20px 10px;
+  color: #718096;
+  font-size: 12px;
+}
+
+@media(max-width: 480px) {
+  #map { height: 380px; }
+  .container { margin-top: 12px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>RUMBLING</h1>
+  <p>Peta Interaktif dan Pencarian Rute</p>
+  <p>Sulawesi Selatan, Indonesia</p>
+</header>
+
+<div class="container">
+
+  <section class="panel">
+    <h2>Temukan Perjalananmu</h2>
+
+    <label for="asal">Lokasi Asal</label>
+    <input id="asal" type="text"
+      placeholder="Contoh: Bantaeng, Sulawesi Selatan">
+
+    <label for="tujuan">Lokasi Tujuan</label>
+    <input id="tujuan" type="text"
+      placeholder="Contoh: Makassar, Sulawesi Selatan">
+
+    <label>Pilih Transportasi</label>
+
+    <div class="transport">
+      <button type="button" class="active"
+        data-mode="motor" onclick="pilihMode(this)">
+        🏍️ Motor
+      </button>
+
+      <button type="button"
+        data-mode="mobil" onclick="pilihMode(this)">
+        🚗 Mobil
+      </button>
+
+      <button type="button"
+        data-mode="jalan" onclick="pilihMode(this)">
+        🚶 Jalan kaki
+      </button>
+    </div>
+
+    <button class="main" id="cari"
+      onclick="cariRute()">
+      Cari Rute
+    </button>
+
+    <button class="secondary" onclick="resetPeta()">
+      Reset Peta
+    </button>
+
+    <div class="status" id="status">
+      Masukkan lokasi asal dan tujuan untuk memulai.
+    </div>
+
+    <div id="hasil">
+      <h2>Hasil Perjalanan</h2>
+      <div id="namaRute"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="small">Jarak perjalanan</span>
+          <strong id="jarak">-</strong>
+        </div>
+
+        <div class="stat">
+          <span class="small">Estimasi waktu</span>
+          <strong id="waktu">-</strong>
+        </div>
+      </div>
+
+      <p class="small" id="keterangan"></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Peta Sulawesi Selatan</h2>
+    <div id="map"></div>
+    <p class="small">
+      Geser peta untuk menjelajahi daerah. Gunakan
+      tombol + dan - untuk memperbesar atau memperkecil.
+      Peta © OpenStreetMap contributors.
+    </p>
+  </section>
+
+  <section class="panel">
+    <h2>Tentang RUMBLING</h2>
+    <p class="small">
+      RUMBLING merupakan website peta interaktif
+      untuk mencari rute dan membandingkan perjalanan
+      antarwilayah. Pengguna dapat mencari lokasi,
+      melihat garis perjalanan, jarak, dan estimasi waktu.
+    </p>
+
+    <h2>Dibuat Oleh</h2>
+    <p>Muh Ahyar Arifin</p>
+    <p>Anugrah Salzabil</p>
+  </section>
+
+</div>
+
+<footer>
+  RUMBLING © 2026<br>
+  Peta Interaktif Sulawesi Selatan
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+const map = L.map('map').setView([-5.4, 119.9], 8);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let mode = 'motor';
+let markerAsal = null;
+let markerTujuan = null;
+let garisRute = null;
+
+const batasSulsel = {
+  minLat: -7.7,
+  maxLat: -1.5,
+  minLon: 116.5,
+  maxLon: 122.5
+};
+
+function pilihMode(button) {
+  mode = button.dataset.mode;
+
+  document.querySelectorAll('.transport button')
+    .forEach(b => b.classList.remove('active'));
+
+  button.classList.add('active');
+}
+
+function dalamSulsel(lat, lon) {
+  return lat >= batasSulsel.minLat &&
+    lat <= batasSulsel.maxLat &&
+    lon >= batasSulsel.minLon &&
+    lon <= batasSulsel.maxLon;
+}
+
+async function cariLokasi(nama) {
+  const url = 'https://photon.komoot.io/api/?q=' +
+    encodeURIComponent(nama) +
+    '&lat=-5.4&lon=119.9&limit=8';
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('Layanan pencarian lokasi bermasalah.');
+  }
+
+  const data = await response.json();
+
+  const hasil = data.features.filter(item => {
+    const koordinat = item.geometry.coordinates;
+    return dalamSulsel(koordinat[1], koordinat[0]);
+  });
+
+  if (!hasil.length) {
+    throw new Error(
+      'Lokasi tidak ditemukan di wilayah Sulawesi Selatan.'
+    );
+  }
+
+  const item = hasil[0];
+  const koordinat = item.geometry.coordinates;
+
+  const namaTempat = item.properties.name ||
+    item.properties.city ||
+    item.properties.county ||
+    nama;
+
+  return {
+    lat: koordinat[1],
+    lon: koordinat[0],
+    nama: namaTempat
+  };
+}
+
+function formatWaktu(detik) {
+  const menit = Math.round(detik / 60);
+
+  if (menit < 60) return menit + ' menit';
+
+  const jam = Math.floor(menit / 60);
+  const sisa = menit % 60;
+
+  return jam + ' jam ' + sisa + ' menit';
+}
+
+async function cariRute() {
+  const asal = document.getElementById('asal').value.trim();
+  const tujuan = document.getElementById('tujuan').value.trim();
+  const status = document.getElementById('status');
+  const tombol = document.getElementById('cari');
+
+  document.getElementById('hasil').style.display = 'none';
+
+  if (!asal || !tujuan) {
+    status.textContent = 'Isi lokasi asal dan tujuan terlebih dahulu.';
+    return;
+  }
+
+  tombol.disabled = true;
+  tombol.textContent = 'Sedang mencari...';
+
+  try {
+    status.textContent = 'Mencari koordinat lokasi...';
+
+    const [a, b] = await Promise.all([
+      cariLokasi(asal),
+      cariLokasi(tujuan)
+    ]);
+
+    if (a.lat === b.lat && a.lon === b.lon) {
+      throw new Error('Lokasi asal dan tujuan sama.');
+    }
+
+    status.textContent = 'Menghitung rute perjalanan...';
+
+    let profil = mode === 'jalan' ? 'foot' : 'car';
+
+    const koordinat =
+      a.lon + ',' + a.lat + ';' + b.lon + ',' + b.lat;
+
+    const url =
+      'https://routing.openstreetmap.de/routed-' +
+      profil + '/route/v1/driving/' +
+      koordinat +
+      '?overview=full&geometries=geojson&steps=true';
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error('Layanan rute tidak merespons.');
+    }
+
+    const data = await response.json();
+
+    if (!data.routes || !data.routes.length) {
+      throw new Error('Rute perjalanan tidak ditemukan.');
+    }
+
+    const rute = data.routes[0];
+
+    if (markerAsal) map.removeLayer(markerAsal);
+    if (markerTujuan) map.removeLayer(markerTujuan);
+    if (garisRute) map.removeLayer(garisRute);
+
+    markerAsal = L.marker([a.lat, a.lon])
+      .addTo(map)
+      .bindPopup('Lokasi asal: ' + a.nama);
+
+    markerTujuan = L.marker([b.lat, b.lon])
+      .addTo(map)
+      .bindPopup('Lokasi tujuan: ' + b.nama);
+
+    garisRute = L.geoJSON(rute.geometry, {
+      style: {
+        color: '#1769db',
+        weight: 5,
+        opacity: 0.85
+      }
+    }).addTo(map);
+
+    map.fitBounds(garisRute.getBounds(), {
+      padding: [35, 35]
+    });
+
+    document.getElementById('namaRute').innerHTML =
+      '<b>' + a.nama + '</b> → <b>' + b.nama + '</b>';
+
+    document.getElementById('jarak').textContent =
+      (rute.distance / 1000).toFixed(2) + ' km';
+
+    document.getElementById('waktu').textContent =
+      formatWaktu(rute.duration);
+
+    let jenis = mode === 'jalan' ? 'Jalan kaki' :
+      mode === 'motor' ? 'Motor' : 'Mobil';
+
+    document.getElementById('keterangan').textContent =
+      'Transportasi: ' + jenis +
+      '. Estimasi berdasarkan profil rute yang tersedia. ' +
+      'Waktu nyata dapat berbeda karena kondisi lalu lintas, ' +
+      'kecepatan, dan keadaan jalan.';
+
+    document.getElementById('hasil').style.display = 'block';
+
+    status.textContent = 'Rute berhasil ditemukan!';
+
+  } catch (error) {
+    status.textContent = error.message ||
+      'Terjadi kesalahan. Silakan coba kembali.';
+  } finally {
+    tombol.disabled = false;
+    tombol.textContent = 'Cari Rute';
+  }
+}
+
+function resetPeta() {
+  if (markerAsal) map.removeLayer(markerAsal);
+  if (markerTujuan) map.removeLayer(markerTujuan);
+  if (garisRute) map.removeLayer(garisRute);
+
+  markerAsal = null;
+  markerTujuan = null;
+  garisRute = null;
+
+  document.getElementById('asal').value = '';
+  document.getElementById('tujuan').value = '';
+  document.getElementById('hasil').style.display = 'none';
+  document.getElementById('status').textContent =
+    'Peta telah direset. Silakan masukkan lokasi baru.';
+
+  map.setView([-5.4, 119.9], 8);
+}
+</script>
+
+</body>
+</html>
